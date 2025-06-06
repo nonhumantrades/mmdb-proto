@@ -1,0 +1,145 @@
+syntax = "proto3";
+option go_package = "github.com/nonhumantrades/mmdb-proto/proto";
+
+package mmdb;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+enum CompressionMethod {
+    CompressionNone   = 0;
+    CompressionSnappy = 1;
+    CompressionLZ4    = 2;
+    CompressionZstd   = 3;
+}
+
+message Row {
+    google.protobuf.Timestamp timestamp = 1;
+    bytes data                          = 2;
+}
+
+message Table {
+    string name                             = 1;
+    CompressionMethod compression           = 2;
+    uint64 row_count                        = 3;
+    uint64 compressed_bytes                 = 4;
+    uint64 uncompressed_bytes               = 5;
+    double compression_ratio                = 6;
+	google.protobuf.Timestamp min_timestamp = 7;
+	google.protobuf.Timestamp max_timestamp = 8;
+	google.protobuf.Timestamp last_updated  = 9;
+	google.protobuf.Timestamp created_at    = 10;
+}
+
+message CreateTableRequest {
+    string name                   = 1;
+    CompressionMethod compression = 2;
+	bool if_not_exists            = 3; 
+}
+
+message CreateTableResponse {
+    Table table = 1;
+}
+
+message DropTableRequest {
+    string name = 1;
+}
+
+message DropTableResponse {}
+
+message InsertRequest {
+    string table_name = 1;
+    string prefix     = 2;
+    repeated Row rows = 4;
+}
+
+message InsertResponse {
+    uint64 duration = 1;
+}
+
+message QueryRequest {
+	string table_name              = 1;
+    string prefix                  = 2;
+    google.protobuf.Timestamp from = 3;
+    google.protobuf.Timestamp to   = 4;
+    uint64 limit                   = 5;
+    uint64 bucket                  = 6;
+    bool reverse                   = 7;
+    bool head                      = 8;
+}
+
+message QueryResponse {
+    string table_name         = 1;
+    string prefix             = 2;
+    uint64 duration           = 3;
+    uint64 count              = 4;
+	uint64 uncompressed_bytes = 5;
+	uint64 compressed_bytes   = 6;
+    repeated Row rows         = 7;
+}
+
+message GetTableRequest {
+    string table_name = 1;
+}
+
+message GetTableResponse {
+	Table table = 1;
+}
+
+message ListTablesResponse {
+    repeated Table tables = 1;
+}
+
+message BackupChunk {
+    bytes  data    = 1;
+	uint64 version = 2;
+}
+
+message BackupRequest {
+	uint64            version     = 1;
+	CompressionMethod compression = 2;
+}
+
+message S3Config {
+  string bucket     = 1;
+  string url        = 2;   
+  string access_key = 3;
+  string secret_key = 4;
+  string region     = 5;
+}
+
+message S3BackupRequest {
+  S3Config s3_config   = 1;
+  bool     incremental = 2; 
+  string   full_key    = 3; 
+}
+
+message S3BackupResponse {
+  string object_key = 1;  
+  uint64 version    = 2; 
+  uint64 size       = 3;  
+  uint64 duration   = 4;  
+}
+
+message RestoreFromS3Request {
+  S3Config s3_config  = 1;
+  string   object_key = 2;  
+}
+
+message RestoreFromS3Response {
+  bool   success  = 1;
+  uint64 duration = 2;
+}
+
+
+service MMDB {
+    rpc CreateTable(CreateTableRequest)       returns (CreateTableResponse);
+    rpc DropTable(DropTableRequest)           returns (DropTableResponse);
+    rpc Insert(InsertRequest)                 returns (InsertResponse);
+    rpc Query(QueryRequest)                   returns (QueryResponse);
+    rpc GetTable(GetTableRequest)             returns (GetTableResponse);
+    rpc ListTables(google.protobuf.Empty)     returns (ListTablesResponse);
+    rpc Backup(BackupRequest)                 returns (stream BackupChunk);
+	rpc BackupToS3(S3BackupRequest)           returns (S3BackupResponse);
+    rpc RestoreFromS3(RestoreFromS3Request)   returns (RestoreFromS3Response);
+}
