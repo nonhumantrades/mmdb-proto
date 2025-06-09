@@ -50,32 +50,75 @@ message DropTableResponse {}
 message InsertRequest {
     string table_name = 1;
     string prefix     = 2;
-    repeated Row rows = 4;
+    repeated Row rows = 3;
 }
 
 message InsertResponse {
     uint64 duration = 1;
 }
 
+message FilterOptions {
+    google.protobuf.Timestamp from = 1;
+    google.protobuf.Timestamp to   = 2;
+    int64 limit                    = 3; // -1 = no limit, 0 = default
+    bool reverse                   = 4;
+}
+
+message AggregationOptions {
+    uint64 time_bucket = 1;
+}
+
+message StreamOptions {
+  uint32 rows_per_chunk    = 1; // 0 = default rows per chunk count
+  uint32 target_bytes      = 2; // 0 = no bytes limit. If set, this overrides rows_per_chunk
+}
+
 message QueryRequest {
-	string table_name              = 1;
-    string prefix                  = 2;
-    google.protobuf.Timestamp from = 3;
-    google.protobuf.Timestamp to   = 4;
-    uint64 limit                   = 5;
-    uint64 bucket                  = 6;
-    bool reverse                   = 7;
-    bool head                      = 8;
+	string table_name                               = 1;
+    string prefix                                   = 2;
+    FilterOptions filter_options                    = 3;
+    optional AggregationOptions aggregation_options = 4; 
+    optional StreamOptions stream_options           = 5;
+    bool head                                       = 6;
+    bool send_compressed                            = 7;
+}
+
+message StreamQueryHeader {
+    string table_name             = 1;
+    string prefix                 = 2;
+    CompressionMethod compression = 3;
+}
+
+message StreamQueryBatch {
+    repeated Row rows = 1;
+}
+
+message StreamQueryFooter {
+    uint64 duration             = 1;
+    uint64 count                = 2;
+    uint64 uncompressed_bytes   = 3;
+    uint64 compressed_bytes     = 4;
+    bool   truncated_by_limit   = 5;
+}
+
+message StreamQueryChunk {
+    oneof chunk {
+        StreamQueryHeader header = 1;
+        StreamQueryBatch  batch  = 2;
+        StreamQueryFooter footer = 3;
+    }
 }
 
 message QueryResponse {
-    string table_name         = 1;
-    string prefix             = 2;
-    uint64 duration           = 3;
-    uint64 count              = 4;
-	uint64 uncompressed_bytes = 5;
-	uint64 compressed_bytes   = 6;
-    repeated Row rows         = 7;
+    string table_name             = 1;
+    string prefix                 = 2;
+    uint64 duration               = 3;
+    uint64 count                  = 4;
+	uint64 uncompressed_bytes     = 5;
+	uint64 compressed_bytes       = 6;
+    bool truncated_by_limit       = 7;
+    CompressionMethod compression = 8;
+    repeated Row rows             = 9;
 }
 
 message GetTableRequest {
@@ -137,6 +180,7 @@ service MMDB {
     rpc DropTable(DropTableRequest)           returns (DropTableResponse);
     rpc Insert(InsertRequest)                 returns (InsertResponse);
     rpc Query(QueryRequest)                   returns (QueryResponse);
+    rpc StreamQuery(QueryRequest)             returns (stream StreamQueryChunk);
     rpc GetTable(GetTableRequest)             returns (GetTableResponse);
     rpc ListTables(google.protobuf.Empty)     returns (ListTablesResponse);
     rpc Backup(BackupRequest)                 returns (stream BackupChunk);

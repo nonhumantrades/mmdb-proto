@@ -38,7 +38,7 @@ type DRPCMMDBClient interface {
 	DropTable(ctx context.Context, in *DropTableRequest) (*DropTableResponse, error)
 	Insert(ctx context.Context, in *InsertRequest) (*InsertResponse, error)
 	Query(ctx context.Context, in *QueryRequest) (*QueryResponse, error)
-	StreamQuery(ctx context.Context, in *StreamQueryRequest) (DRPCMMDB_StreamQueryClient, error)
+	StreamQuery(ctx context.Context, in *QueryRequest) (DRPCMMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest) (*GetTableResponse, error)
 	ListTables(ctx context.Context, in *emptypb.Empty) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest) (DRPCMMDB_BackupClient, error)
@@ -92,7 +92,7 @@ func (c *drpcMMDBClient) Query(ctx context.Context, in *QueryRequest) (*QueryRes
 	return out, nil
 }
 
-func (c *drpcMMDBClient) StreamQuery(ctx context.Context, in *StreamQueryRequest) (DRPCMMDB_StreamQueryClient, error) {
+func (c *drpcMMDBClient) StreamQuery(ctx context.Context, in *QueryRequest) (DRPCMMDB_StreamQueryClient, error) {
 	stream, err := c.cc.NewStream(ctx, "/mmdb.MMDB/StreamQuery", drpcEncoding_File_core_proto{})
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ type DRPCMMDBServer interface {
 	DropTable(context.Context, *DropTableRequest) (*DropTableResponse, error)
 	Insert(context.Context, *InsertRequest) (*InsertResponse, error)
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
-	StreamQuery(*StreamQueryRequest, DRPCMMDB_StreamQueryStream) error
+	StreamQuery(*QueryRequest, DRPCMMDB_StreamQueryStream) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
 	ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, DRPCMMDB_BackupStream) error
@@ -239,7 +239,7 @@ func (s *DRPCMMDBUnimplementedServer) Query(context.Context, *QueryRequest) (*Qu
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
-func (s *DRPCMMDBUnimplementedServer) StreamQuery(*StreamQueryRequest, DRPCMMDB_StreamQueryStream) error {
+func (s *DRPCMMDBUnimplementedServer) StreamQuery(*QueryRequest, DRPCMMDB_StreamQueryStream) error {
 	return drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
@@ -310,7 +310,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return nil, srv.(DRPCMMDBServer).
 					StreamQuery(
-						in1.(*StreamQueryRequest),
+						in1.(*QueryRequest),
 						&drpcMMDB_StreamQueryStream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.StreamQuery, true

@@ -230,8 +230,8 @@ func (m *StreamOptions) CloneVT() *StreamOptions {
 		return (*StreamOptions)(nil)
 	}
 	r := new(StreamOptions)
-	r.ChunkCount = m.ChunkCount
-	r.ChunkSizeBytes = m.ChunkSizeBytes
+	r.RowsPerChunk = m.RowsPerChunk
+	r.TargetBytes = m.TargetBytes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -252,6 +252,7 @@ func (m *QueryRequest) CloneVT() *QueryRequest {
 	r.Prefix = m.Prefix
 	r.FilterOptions = m.FilterOptions.CloneVT()
 	r.AggregationOptions = m.AggregationOptions.CloneVT()
+	r.StreamOptions = m.StreamOptions.CloneVT()
 	r.Head = m.Head
 	r.SendCompressed = m.SendCompressed
 	if len(m.unknownFields) > 0 {
@@ -265,29 +266,6 @@ func (m *QueryRequest) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *StreamQueryRequest) CloneVT() *StreamQueryRequest {
-	if m == nil {
-		return (*StreamQueryRequest)(nil)
-	}
-	r := new(StreamQueryRequest)
-	r.TableName = m.TableName
-	r.Prefix = m.Prefix
-	r.FilterOptions = m.FilterOptions.CloneVT()
-	r.AggregationOptions = m.AggregationOptions.CloneVT()
-	r.StreamOptions = m.StreamOptions.CloneVT()
-	r.Head = m.Head
-	r.SendCompressed = m.SendCompressed
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *StreamQueryRequest) CloneMessageVT() proto.Message {
-	return m.CloneVT()
-}
-
 func (m *StreamQueryHeader) CloneVT() *StreamQueryHeader {
 	if m == nil {
 		return (*StreamQueryHeader)(nil)
@@ -295,6 +273,7 @@ func (m *StreamQueryHeader) CloneVT() *StreamQueryHeader {
 	r := new(StreamQueryHeader)
 	r.TableName = m.TableName
 	r.Prefix = m.Prefix
+	r.Compression = m.Compression
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -410,6 +389,7 @@ func (m *QueryResponse) CloneVT() *QueryResponse {
 	r.UncompressedBytes = m.UncompressedBytes
 	r.CompressedBytes = m.CompressedBytes
 	r.TruncatedByLimit = m.TruncatedByLimit
+	r.Compression = m.Compression
 	if rhs := m.Rows; rhs != nil {
 		tmpContainer := make([]*Row, len(rhs))
 		for k, v := range rhs {
@@ -879,10 +859,10 @@ func (this *StreamOptions) EqualVT(that *StreamOptions) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.ChunkCount != that.ChunkCount {
+	if this.RowsPerChunk != that.RowsPerChunk {
 		return false
 	}
-	if this.ChunkSizeBytes != that.ChunkSizeBytes {
+	if this.TargetBytes != that.TargetBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -913,6 +893,9 @@ func (this *QueryRequest) EqualVT(that *QueryRequest) bool {
 	if !this.AggregationOptions.EqualVT(that.AggregationOptions) {
 		return false
 	}
+	if !this.StreamOptions.EqualVT(that.StreamOptions) {
+		return false
+	}
 	if this.Head != that.Head {
 		return false
 	}
@@ -929,43 +912,6 @@ func (this *QueryRequest) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *StreamQueryRequest) EqualVT(that *StreamQueryRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.TableName != that.TableName {
-		return false
-	}
-	if this.Prefix != that.Prefix {
-		return false
-	}
-	if !this.FilterOptions.EqualVT(that.FilterOptions) {
-		return false
-	}
-	if !this.AggregationOptions.EqualVT(that.AggregationOptions) {
-		return false
-	}
-	if !this.StreamOptions.EqualVT(that.StreamOptions) {
-		return false
-	}
-	if this.Head != that.Head {
-		return false
-	}
-	if this.SendCompressed != that.SendCompressed {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *StreamQueryRequest) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*StreamQueryRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
 func (this *StreamQueryHeader) EqualVT(that *StreamQueryHeader) bool {
 	if this == that {
 		return true
@@ -976,6 +922,9 @@ func (this *StreamQueryHeader) EqualVT(that *StreamQueryHeader) bool {
 		return false
 	}
 	if this.Prefix != that.Prefix {
+		return false
+	}
+	if this.Compression != that.Compression {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1180,6 +1129,9 @@ func (this *QueryResponse) EqualVT(that *QueryResponse) bool {
 		return false
 	}
 	if this.TruncatedByLimit != that.TruncatedByLimit {
+		return false
+	}
+	if this.Compression != that.Compression {
 		return false
 	}
 	if len(this.Rows) != len(that.Rows) {
@@ -1466,7 +1418,7 @@ type MMDBClient interface {
 	DropTable(ctx context.Context, in *DropTableRequest, opts ...grpc.CallOption) (*DropTableResponse, error)
 	Insert(ctx context.Context, in *InsertRequest, opts ...grpc.CallOption) (*InsertResponse, error)
 	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResponse, error)
-	StreamQuery(ctx context.Context, in *StreamQueryRequest, opts ...grpc.CallOption) (MMDB_StreamQueryClient, error)
+	StreamQuery(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (MMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest, opts ...grpc.CallOption) (*GetTableResponse, error)
 	ListTables(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (MMDB_BackupClient, error)
@@ -1518,7 +1470,7 @@ func (c *mMDBClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.C
 	return out, nil
 }
 
-func (c *mMDBClient) StreamQuery(ctx context.Context, in *StreamQueryRequest, opts ...grpc.CallOption) (MMDB_StreamQueryClient, error) {
+func (c *mMDBClient) StreamQuery(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (MMDB_StreamQueryClient, error) {
 	stream, err := c.cc.NewStream(ctx, &MMDB_ServiceDesc.Streams[0], "/mmdb.MMDB/StreamQuery", opts...)
 	if err != nil {
 		return nil, err
@@ -1626,7 +1578,7 @@ type MMDBServer interface {
 	DropTable(context.Context, *DropTableRequest) (*DropTableResponse, error)
 	Insert(context.Context, *InsertRequest) (*InsertResponse, error)
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
-	StreamQuery(*StreamQueryRequest, MMDB_StreamQueryServer) error
+	StreamQuery(*QueryRequest, MMDB_StreamQueryServer) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
 	ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, MMDB_BackupServer) error
@@ -1651,7 +1603,7 @@ func (UnimplementedMMDBServer) Insert(context.Context, *InsertRequest) (*InsertR
 func (UnimplementedMMDBServer) Query(context.Context, *QueryRequest) (*QueryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Query not implemented")
 }
-func (UnimplementedMMDBServer) StreamQuery(*StreamQueryRequest, MMDB_StreamQueryServer) error {
+func (UnimplementedMMDBServer) StreamQuery(*QueryRequest, MMDB_StreamQueryServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamQuery not implemented")
 }
 func (UnimplementedMMDBServer) GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error) {
@@ -1755,7 +1707,7 @@ func _MMDB_Query_Handler(srv interface{}, ctx context.Context, dec func(interfac
 }
 
 func _MMDB_StreamQuery_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamQueryRequest)
+	m := new(QueryRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -2289,7 +2241,7 @@ func (m *InsertRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.Prefix) > 0 {
@@ -2483,13 +2435,13 @@ func (m *StreamOptions) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ChunkSizeBytes != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ChunkSizeBytes))
+	if m.TargetBytes != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TargetBytes))
 		i--
 		dAtA[i] = 0x10
 	}
-	if m.ChunkCount != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ChunkCount))
+	if m.RowsPerChunk != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RowsPerChunk))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -2515,93 +2467,6 @@ func (m *QueryRequest) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *QueryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.SendCompressed {
-		i--
-		if m.SendCompressed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.Head {
-		i--
-		if m.Head {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.AggregationOptions != nil {
-		size, err := m.AggregationOptions.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.FilterOptions != nil {
-		size, err := m.FilterOptions.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Prefix) > 0 {
-		i -= len(m.Prefix)
-		copy(dAtA[i:], m.Prefix)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Prefix)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.TableName) > 0 {
-		i -= len(m.TableName)
-		copy(dAtA[i:], m.TableName)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TableName)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *StreamQueryRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *StreamQueryRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *StreamQueryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2709,6 +2574,11 @@ func (m *StreamQueryHeader) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Compression != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Compression))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.Prefix) > 0 {
 		i -= len(m.Prefix)
@@ -2973,8 +2843,13 @@ func (m *QueryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x42
+			dAtA[i] = 0x4a
 		}
+	}
+	if m.Compression != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Compression))
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.TruncatedByLimit {
 		i--
@@ -3886,7 +3761,7 @@ func (m *InsertRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.Prefix) > 0 {
@@ -4080,13 +3955,13 @@ func (m *StreamOptions) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.ChunkSizeBytes != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ChunkSizeBytes))
+	if m.TargetBytes != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TargetBytes))
 		i--
 		dAtA[i] = 0x10
 	}
-	if m.ChunkCount != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ChunkCount))
+	if m.RowsPerChunk != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RowsPerChunk))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -4112,93 +3987,6 @@ func (m *QueryRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
 }
 
 func (m *QueryRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.SendCompressed {
-		i--
-		if m.SendCompressed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.Head {
-		i--
-		if m.Head {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.AggregationOptions != nil {
-		size, err := m.AggregationOptions.MarshalToSizedBufferVTStrict(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.FilterOptions != nil {
-		size, err := m.FilterOptions.MarshalToSizedBufferVTStrict(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Prefix) > 0 {
-		i -= len(m.Prefix)
-		copy(dAtA[i:], m.Prefix)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Prefix)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.TableName) > 0 {
-		i -= len(m.TableName)
-		copy(dAtA[i:], m.TableName)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TableName)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *StreamQueryRequest) MarshalVTStrict() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *StreamQueryRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
-}
-
-func (m *StreamQueryRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -4306,6 +4094,11 @@ func (m *StreamQueryHeader) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Compression != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Compression))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.Prefix) > 0 {
 		i -= len(m.Prefix)
@@ -4582,8 +4375,13 @@ func (m *QueryResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x42
+			dAtA[i] = 0x4a
 		}
+	}
+	if m.Compression != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Compression))
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.TruncatedByLimit {
 		i--
@@ -5330,49 +5128,17 @@ func (m *StreamOptions) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.ChunkCount != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.ChunkCount))
+	if m.RowsPerChunk != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.RowsPerChunk))
 	}
-	if m.ChunkSizeBytes != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.ChunkSizeBytes))
+	if m.TargetBytes != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TargetBytes))
 	}
 	n += len(m.unknownFields)
 	return n
 }
 
 func (m *QueryRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.TableName)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Prefix)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.FilterOptions != nil {
-		l = m.FilterOptions.SizeVT()
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.AggregationOptions != nil {
-		l = m.AggregationOptions.SizeVT()
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.Head {
-		n += 2
-	}
-	if m.SendCompressed {
-		n += 2
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *StreamQueryRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -5421,6 +5187,9 @@ func (m *StreamQueryHeader) SizeVT() (n int) {
 	l = len(m.Prefix)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Compression != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Compression))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5544,6 +5313,9 @@ func (m *QueryResponse) SizeVT() (n int) {
 	}
 	if m.TruncatedByLimit {
 		n += 2
+	}
+	if m.Compression != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Compression))
 	}
 	if len(m.Rows) > 0 {
 		for _, e := range m.Rows {
@@ -6611,7 +6383,7 @@ func (m *InsertRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Prefix = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}
@@ -6852,7 +6624,7 @@ func (m *FilterOptions) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Limit |= uint64(b&0x7F) << shift
+				m.Limit |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -7000,9 +6772,9 @@ func (m *StreamOptions) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChunkCount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RowsPerChunk", wireType)
 			}
-			m.ChunkCount = 0
+			m.RowsPerChunk = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -7012,16 +6784,16 @@ func (m *StreamOptions) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ChunkCount |= uint64(b&0x7F) << shift
+				m.RowsPerChunk |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSizeBytes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetBytes", wireType)
 			}
-			m.ChunkSizeBytes = 0
+			m.TargetBytes = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -7031,7 +6803,7 @@ func (m *StreamOptions) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ChunkSizeBytes |= uint64(b&0x7F) << shift
+				m.TargetBytes |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -7085,233 +6857,6 @@ func (m *QueryRequest) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: QueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TableName", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.TableName = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Prefix = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterOptions", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.FilterOptions == nil {
-				m.FilterOptions = &FilterOptions{}
-			}
-			if err := m.FilterOptions.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AggregationOptions", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AggregationOptions == nil {
-				m.AggregationOptions = &AggregationOptions{}
-			}
-			if err := m.AggregationOptions.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Head", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Head = bool(v != 0)
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SendCompressed", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.SendCompressed = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *StreamQueryRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protohelpers.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: StreamQueryRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StreamQueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -7641,6 +7186,25 @@ func (m *StreamQueryHeader) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Prefix = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Compression", wireType)
+			}
+			m.Compression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Compression |= CompressionMethod(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -8259,6 +7823,25 @@ func (m *QueryResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.TruncatedByLimit = bool(v != 0)
 		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Compression", wireType)
+			}
+			m.Compression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Compression |= CompressionMethod(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}
@@ -10349,7 +9932,7 @@ func (m *InsertRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Prefix = stringValue
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}
@@ -10590,7 +10173,7 @@ func (m *FilterOptions) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Limit |= uint64(b&0x7F) << shift
+				m.Limit |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -10738,9 +10321,9 @@ func (m *StreamOptions) UnmarshalVTUnsafe(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChunkCount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RowsPerChunk", wireType)
 			}
-			m.ChunkCount = 0
+			m.RowsPerChunk = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -10750,16 +10333,16 @@ func (m *StreamOptions) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ChunkCount |= uint64(b&0x7F) << shift
+				m.RowsPerChunk |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSizeBytes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetBytes", wireType)
 			}
-			m.ChunkSizeBytes = 0
+			m.TargetBytes = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -10769,7 +10352,7 @@ func (m *StreamOptions) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ChunkSizeBytes |= uint64(b&0x7F) << shift
+				m.TargetBytes |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -10823,241 +10406,6 @@ func (m *QueryRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: QueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TableName", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			var stringValue string
-			if intStringLen > 0 {
-				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
-			}
-			m.TableName = stringValue
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			var stringValue string
-			if intStringLen > 0 {
-				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
-			}
-			m.Prefix = stringValue
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterOptions", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.FilterOptions == nil {
-				m.FilterOptions = &FilterOptions{}
-			}
-			if err := m.FilterOptions.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AggregationOptions", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.AggregationOptions == nil {
-				m.AggregationOptions = &AggregationOptions{}
-			}
-			if err := m.AggregationOptions.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Head", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Head = bool(v != 0)
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SendCompressed", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.SendCompressed = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *StreamQueryRequest) UnmarshalVTUnsafe(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protohelpers.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: StreamQueryRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StreamQueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -11403,6 +10751,25 @@ func (m *StreamQueryHeader) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Prefix = stringValue
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Compression", wireType)
+			}
+			m.Compression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Compression |= CompressionMethod(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -12029,6 +11396,25 @@ func (m *QueryResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.TruncatedByLimit = bool(v != 0)
 		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Compression", wireType)
+			}
+			m.Compression = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Compression |= CompressionMethod(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}
