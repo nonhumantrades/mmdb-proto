@@ -38,6 +38,7 @@ type DRPCMMDBClient interface {
 	DropTable(ctx context.Context, in *DropTableRequest) (*DropTableResponse, error)
 	Insert(ctx context.Context, in *InsertRequest) (*InsertResponse, error)
 	Query(ctx context.Context, in *QueryRequest) (*QueryResponse, error)
+	StreamQuery(ctx context.Context, in *StreamQueryRequest) (DRPCMMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest) (*GetTableResponse, error)
 	ListTables(ctx context.Context, in *emptypb.Empty) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest) (DRPCMMDB_BackupClient, error)
@@ -89,6 +90,46 @@ func (c *drpcMMDBClient) Query(ctx context.Context, in *QueryRequest) (*QueryRes
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *drpcMMDBClient) StreamQuery(ctx context.Context, in *StreamQueryRequest) (DRPCMMDB_StreamQueryClient, error) {
+	stream, err := c.cc.NewStream(ctx, "/mmdb.MMDB/StreamQuery", drpcEncoding_File_core_proto{})
+	if err != nil {
+		return nil, err
+	}
+	x := &drpcMMDB_StreamQueryClient{stream}
+	if err := x.MsgSend(in, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	if err := x.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DRPCMMDB_StreamQueryClient interface {
+	drpc.Stream
+	Recv() (*StreamQueryChunk, error)
+}
+
+type drpcMMDB_StreamQueryClient struct {
+	drpc.Stream
+}
+
+func (x *drpcMMDB_StreamQueryClient) GetStream() drpc.Stream {
+	return x.Stream
+}
+
+func (x *drpcMMDB_StreamQueryClient) Recv() (*StreamQueryChunk, error) {
+	m := new(StreamQueryChunk)
+	if err := x.MsgRecv(m, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *drpcMMDB_StreamQueryClient) RecvMsg(m *StreamQueryChunk) error {
+	return x.MsgRecv(m, drpcEncoding_File_core_proto{})
 }
 
 func (c *drpcMMDBClient) GetTable(ctx context.Context, in *GetTableRequest) (*GetTableResponse, error) {
@@ -172,6 +213,7 @@ type DRPCMMDBServer interface {
 	DropTable(context.Context, *DropTableRequest) (*DropTableResponse, error)
 	Insert(context.Context, *InsertRequest) (*InsertResponse, error)
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
+	StreamQuery(*StreamQueryRequest, DRPCMMDB_StreamQueryStream) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
 	ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, DRPCMMDB_BackupStream) error
@@ -197,6 +239,10 @@ func (s *DRPCMMDBUnimplementedServer) Query(context.Context, *QueryRequest) (*Qu
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
+func (s *DRPCMMDBUnimplementedServer) StreamQuery(*StreamQueryRequest, DRPCMMDB_StreamQueryStream) error {
+	return drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
+}
+
 func (s *DRPCMMDBUnimplementedServer) GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error) {
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
@@ -219,7 +265,7 @@ func (s *DRPCMMDBUnimplementedServer) RestoreFromS3(context.Context, *RestoreFro
 
 type DRPCMMDBDescription struct{}
 
-func (DRPCMMDBDescription) NumMethods() int { return 9 }
+func (DRPCMMDBDescription) NumMethods() int { return 10 }
 
 func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, interface{}, bool) {
 	switch n {
@@ -260,6 +306,15 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 					)
 			}, DRPCMMDBServer.Query, true
 	case 4:
+		return "/mmdb.MMDB/StreamQuery", drpcEncoding_File_core_proto{},
+			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
+				return nil, srv.(DRPCMMDBServer).
+					StreamQuery(
+						in1.(*StreamQueryRequest),
+						&drpcMMDB_StreamQueryStream{in2.(drpc.Stream)},
+					)
+			}, DRPCMMDBServer.StreamQuery, true
+	case 5:
 		return "/mmdb.MMDB/GetTable", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -268,7 +323,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*GetTableRequest),
 					)
 			}, DRPCMMDBServer.GetTable, true
-	case 5:
+	case 6:
 		return "/mmdb.MMDB/ListTables", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -277,7 +332,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*emptypb.Empty),
 					)
 			}, DRPCMMDBServer.ListTables, true
-	case 6:
+	case 7:
 		return "/mmdb.MMDB/Backup", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return nil, srv.(DRPCMMDBServer).
@@ -286,7 +341,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						&drpcMMDB_BackupStream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.Backup, true
-	case 7:
+	case 8:
 		return "/mmdb.MMDB/BackupToS3", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -295,7 +350,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*S3BackupRequest),
 					)
 			}, DRPCMMDBServer.BackupToS3, true
-	case 8:
+	case 9:
 		return "/mmdb.MMDB/RestoreFromS3", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -375,6 +430,19 @@ func (x *drpcMMDB_QueryStream) SendAndClose(m *QueryResponse) error {
 		return err
 	}
 	return x.CloseSend()
+}
+
+type DRPCMMDB_StreamQueryStream interface {
+	drpc.Stream
+	Send(*StreamQueryChunk) error
+}
+
+type drpcMMDB_StreamQueryStream struct {
+	drpc.Stream
+}
+
+func (x *drpcMMDB_StreamQueryStream) Send(m *StreamQueryChunk) error {
+	return x.MsgSend(m, drpcEncoding_File_core_proto{})
 }
 
 type DRPCMMDB_GetTableStream interface {
