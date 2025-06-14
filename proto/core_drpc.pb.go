@@ -8,7 +8,6 @@ import (
 	context "context"
 	errors "errors"
 	drpc1 "github.com/planetscale/vtprotobuf/codec/drpc"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	drpc "storj.io/drpc"
 	drpcerr "storj.io/drpc/drpcerr"
 )
@@ -40,7 +39,7 @@ type DRPCMMDBClient interface {
 	Query(ctx context.Context, in *QueryRequest) (*QueryResponse, error)
 	StreamQuery(ctx context.Context, in *QueryRequest) (DRPCMMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest) (*GetTableResponse, error)
-	ListTables(ctx context.Context, in *emptypb.Empty) (*ListTablesResponse, error)
+	ListTables(ctx context.Context, in *Empty) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest) (DRPCMMDB_BackupClient, error)
 	BackupToS3(ctx context.Context, in *S3BackupRequest) (*S3BackupResponse, error)
 	RestoreFromS3(ctx context.Context, in *RestoreFromS3Request) (*RestoreFromS3Response, error)
@@ -141,7 +140,7 @@ func (c *drpcMMDBClient) GetTable(ctx context.Context, in *GetTableRequest) (*Ge
 	return out, nil
 }
 
-func (c *drpcMMDBClient) ListTables(ctx context.Context, in *emptypb.Empty) (*ListTablesResponse, error) {
+func (c *drpcMMDBClient) ListTables(ctx context.Context, in *Empty) (*ListTablesResponse, error) {
 	out := new(ListTablesResponse)
 	err := c.cc.Invoke(ctx, "/mmdb.MMDB/ListTables", drpcEncoding_File_core_proto{}, in, out)
 	if err != nil {
@@ -215,7 +214,7 @@ type DRPCMMDBServer interface {
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
 	StreamQuery(*QueryRequest, DRPCMMDB_StreamQueryStream) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
-	ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error)
+	ListTables(context.Context, *Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, DRPCMMDB_BackupStream) error
 	BackupToS3(context.Context, *S3BackupRequest) (*S3BackupResponse, error)
 	RestoreFromS3(context.Context, *RestoreFromS3Request) (*RestoreFromS3Response, error)
@@ -247,7 +246,7 @@ func (s *DRPCMMDBUnimplementedServer) GetTable(context.Context, *GetTableRequest
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
-func (s *DRPCMMDBUnimplementedServer) ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error) {
+func (s *DRPCMMDBUnimplementedServer) ListTables(context.Context, *Empty) (*ListTablesResponse, error) {
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
@@ -329,7 +328,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 				return srv.(DRPCMMDBServer).
 					ListTables(
 						ctx,
-						in1.(*emptypb.Empty),
+						in1.(*Empty),
 					)
 			}, DRPCMMDBServer.ListTables, true
 	case 7:

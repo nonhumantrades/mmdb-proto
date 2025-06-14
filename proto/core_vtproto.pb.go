@@ -15,7 +15,6 @@ import (
 	status "google.golang.org/grpc/status"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
 	math "math"
@@ -598,6 +597,22 @@ func (m *RestoreFromS3Response) CloneVT() *RestoreFromS3Response {
 }
 
 func (m *RestoreFromS3Response) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *Empty) CloneVT() *Empty {
+	if m == nil {
+		return (*Empty)(nil)
+	}
+	r := new(Empty)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Empty) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1404,6 +1419,22 @@ func (this *RestoreFromS3Response) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
+func (this *Empty) EqualVT(that *Empty) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Empty) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*Empty)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -1420,7 +1451,7 @@ type MMDBClient interface {
 	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResponse, error)
 	StreamQuery(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (MMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest, opts ...grpc.CallOption) (*GetTableResponse, error)
-	ListTables(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListTablesResponse, error)
+	ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (MMDB_BackupClient, error)
 	BackupToS3(ctx context.Context, in *S3BackupRequest, opts ...grpc.CallOption) (*S3BackupResponse, error)
 	RestoreFromS3(ctx context.Context, in *RestoreFromS3Request, opts ...grpc.CallOption) (*RestoreFromS3Response, error)
@@ -1511,7 +1542,7 @@ func (c *mMDBClient) GetTable(ctx context.Context, in *GetTableRequest, opts ...
 	return out, nil
 }
 
-func (c *mMDBClient) ListTables(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListTablesResponse, error) {
+func (c *mMDBClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListTablesResponse, error) {
 	out := new(ListTablesResponse)
 	err := c.cc.Invoke(ctx, "/mmdb.MMDB/ListTables", in, out, opts...)
 	if err != nil {
@@ -1580,7 +1611,7 @@ type MMDBServer interface {
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
 	StreamQuery(*QueryRequest, MMDB_StreamQueryServer) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
-	ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error)
+	ListTables(context.Context, *Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, MMDB_BackupServer) error
 	BackupToS3(context.Context, *S3BackupRequest) (*S3BackupResponse, error)
 	RestoreFromS3(context.Context, *RestoreFromS3Request) (*RestoreFromS3Response, error)
@@ -1609,7 +1640,7 @@ func (UnimplementedMMDBServer) StreamQuery(*QueryRequest, MMDB_StreamQueryServer
 func (UnimplementedMMDBServer) GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTable not implemented")
 }
-func (UnimplementedMMDBServer) ListTables(context.Context, *emptypb.Empty) (*ListTablesResponse, error) {
+func (UnimplementedMMDBServer) ListTables(context.Context, *Empty) (*ListTablesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTables not implemented")
 }
 func (UnimplementedMMDBServer) Backup(*BackupRequest, MMDB_BackupServer) error {
@@ -1746,7 +1777,7 @@ func _MMDB_GetTable_Handler(srv interface{}, ctx context.Context, dec func(inter
 }
 
 func _MMDB_ListTables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1758,7 +1789,7 @@ func _MMDB_ListTables_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/mmdb.MMDB/ListTables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MMDBServer).ListTables(ctx, req.(*emptypb.Empty))
+		return srv.(MMDBServer).ListTables(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3395,6 +3426,39 @@ func (m *RestoreFromS3Response) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *Empty) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Empty) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Empty) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Row) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4927,6 +4991,39 @@ func (m *RestoreFromS3Response) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *Empty) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Empty) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *Empty) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Row) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5508,6 +5605,16 @@ func (m *RestoreFromS3Response) SizeVT() (n int) {
 	if m.Duration != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Duration))
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Empty) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -9022,6 +9129,57 @@ func (m *RestoreFromS3Response) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Empty) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Empty: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Empty: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -12628,6 +12786,57 @@ func (m *RestoreFromS3Response) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Empty) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Empty: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Empty: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
