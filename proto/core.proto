@@ -214,6 +214,15 @@ message S3RestoreChunk {
     }
 }
 
+message SyncTableRequest {
+    string table_name = 1;
+    string prefix     = 2;
+}
+message SyncTableResponse {
+    uint64 row_count = 1;
+    uint64 duration  = 2;
+}
+
 message Empty {}
 
 
@@ -226,6 +235,7 @@ service MMDB {
     rpc StreamQuery(QueryRequest)             returns (stream StreamQueryChunk);
     rpc GetTable(GetTableRequest)             returns (GetTableResponse);
     rpc ListTables(Empty)                     returns (ListTablesResponse);
+    rpc SyncTable(SyncTableRequest)           returns (SyncTableResponse);
     rpc Backup(BackupRequest)                 returns (stream BackupChunk);
 	rpc BackupToS3(S3BackupRequest)           returns (stream S3BackupChunk);
     rpc RestoreFromS3(RestoreFromS3Request)   returns (stream S3RestoreChunk);
