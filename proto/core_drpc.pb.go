@@ -36,13 +36,14 @@ type DRPCMMDBClient interface {
 	CreateTable(ctx context.Context, in *CreateTableRequest) (*CreateTableResponse, error)
 	DropTable(ctx context.Context, in *DropTableRequest) (*DropTableResponse, error)
 	Insert(ctx context.Context, in *InsertRequest) (*InsertResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest) (*DeleteResponse, error)
 	Query(ctx context.Context, in *QueryRequest) (*QueryResponse, error)
 	StreamQuery(ctx context.Context, in *QueryRequest) (DRPCMMDB_StreamQueryClient, error)
 	GetTable(ctx context.Context, in *GetTableRequest) (*GetTableResponse, error)
 	ListTables(ctx context.Context, in *Empty) (*ListTablesResponse, error)
 	Backup(ctx context.Context, in *BackupRequest) (DRPCMMDB_BackupClient, error)
-	BackupToS3(ctx context.Context, in *S3BackupRequest) (*S3BackupResponse, error)
-	RestoreFromS3(ctx context.Context, in *RestoreFromS3Request) (*RestoreFromS3Response, error)
+	BackupToS3(ctx context.Context, in *S3BackupRequest) (DRPCMMDB_BackupToS3Client, error)
+	RestoreFromS3(ctx context.Context, in *RestoreFromS3Request) (DRPCMMDB_RestoreFromS3Client, error)
 }
 
 type drpcMMDBClient struct {
@@ -76,6 +77,15 @@ func (c *drpcMMDBClient) DropTable(ctx context.Context, in *DropTableRequest) (*
 func (c *drpcMMDBClient) Insert(ctx context.Context, in *InsertRequest) (*InsertResponse, error) {
 	out := new(InsertResponse)
 	err := c.cc.Invoke(ctx, "/mmdb.MMDB/Insert", drpcEncoding_File_core_proto{}, in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *drpcMMDBClient) Delete(ctx context.Context, in *DeleteRequest) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, "/mmdb.MMDB/Delete", drpcEncoding_File_core_proto{}, in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -189,35 +199,98 @@ func (x *drpcMMDB_BackupClient) RecvMsg(m *BackupChunk) error {
 	return x.MsgRecv(m, drpcEncoding_File_core_proto{})
 }
 
-func (c *drpcMMDBClient) BackupToS3(ctx context.Context, in *S3BackupRequest) (*S3BackupResponse, error) {
-	out := new(S3BackupResponse)
-	err := c.cc.Invoke(ctx, "/mmdb.MMDB/BackupToS3", drpcEncoding_File_core_proto{}, in, out)
+func (c *drpcMMDBClient) BackupToS3(ctx context.Context, in *S3BackupRequest) (DRPCMMDB_BackupToS3Client, error) {
+	stream, err := c.cc.NewStream(ctx, "/mmdb.MMDB/BackupToS3", drpcEncoding_File_core_proto{})
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &drpcMMDB_BackupToS3Client{stream}
+	if err := x.MsgSend(in, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	if err := x.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *drpcMMDBClient) RestoreFromS3(ctx context.Context, in *RestoreFromS3Request) (*RestoreFromS3Response, error) {
-	out := new(RestoreFromS3Response)
-	err := c.cc.Invoke(ctx, "/mmdb.MMDB/RestoreFromS3", drpcEncoding_File_core_proto{}, in, out)
+type DRPCMMDB_BackupToS3Client interface {
+	drpc.Stream
+	Recv() (*S3BackupChunk, error)
+}
+
+type drpcMMDB_BackupToS3Client struct {
+	drpc.Stream
+}
+
+func (x *drpcMMDB_BackupToS3Client) GetStream() drpc.Stream {
+	return x.Stream
+}
+
+func (x *drpcMMDB_BackupToS3Client) Recv() (*S3BackupChunk, error) {
+	m := new(S3BackupChunk)
+	if err := x.MsgRecv(m, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *drpcMMDB_BackupToS3Client) RecvMsg(m *S3BackupChunk) error {
+	return x.MsgRecv(m, drpcEncoding_File_core_proto{})
+}
+
+func (c *drpcMMDBClient) RestoreFromS3(ctx context.Context, in *RestoreFromS3Request) (DRPCMMDB_RestoreFromS3Client, error) {
+	stream, err := c.cc.NewStream(ctx, "/mmdb.MMDB/RestoreFromS3", drpcEncoding_File_core_proto{})
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &drpcMMDB_RestoreFromS3Client{stream}
+	if err := x.MsgSend(in, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	if err := x.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DRPCMMDB_RestoreFromS3Client interface {
+	drpc.Stream
+	Recv() (*S3RestoreChunk, error)
+}
+
+type drpcMMDB_RestoreFromS3Client struct {
+	drpc.Stream
+}
+
+func (x *drpcMMDB_RestoreFromS3Client) GetStream() drpc.Stream {
+	return x.Stream
+}
+
+func (x *drpcMMDB_RestoreFromS3Client) Recv() (*S3RestoreChunk, error) {
+	m := new(S3RestoreChunk)
+	if err := x.MsgRecv(m, drpcEncoding_File_core_proto{}); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *drpcMMDB_RestoreFromS3Client) RecvMsg(m *S3RestoreChunk) error {
+	return x.MsgRecv(m, drpcEncoding_File_core_proto{})
 }
 
 type DRPCMMDBServer interface {
 	CreateTable(context.Context, *CreateTableRequest) (*CreateTableResponse, error)
 	DropTable(context.Context, *DropTableRequest) (*DropTableResponse, error)
 	Insert(context.Context, *InsertRequest) (*InsertResponse, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	Query(context.Context, *QueryRequest) (*QueryResponse, error)
 	StreamQuery(*QueryRequest, DRPCMMDB_StreamQueryStream) error
 	GetTable(context.Context, *GetTableRequest) (*GetTableResponse, error)
 	ListTables(context.Context, *Empty) (*ListTablesResponse, error)
 	Backup(*BackupRequest, DRPCMMDB_BackupStream) error
-	BackupToS3(context.Context, *S3BackupRequest) (*S3BackupResponse, error)
-	RestoreFromS3(context.Context, *RestoreFromS3Request) (*RestoreFromS3Response, error)
+	BackupToS3(*S3BackupRequest, DRPCMMDB_BackupToS3Stream) error
+	RestoreFromS3(*RestoreFromS3Request, DRPCMMDB_RestoreFromS3Stream) error
 }
 
 type DRPCMMDBUnimplementedServer struct{}
@@ -231,6 +304,10 @@ func (s *DRPCMMDBUnimplementedServer) DropTable(context.Context, *DropTableReque
 }
 
 func (s *DRPCMMDBUnimplementedServer) Insert(context.Context, *InsertRequest) (*InsertResponse, error) {
+	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
+}
+
+func (s *DRPCMMDBUnimplementedServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
@@ -254,17 +331,17 @@ func (s *DRPCMMDBUnimplementedServer) Backup(*BackupRequest, DRPCMMDB_BackupStre
 	return drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
-func (s *DRPCMMDBUnimplementedServer) BackupToS3(context.Context, *S3BackupRequest) (*S3BackupResponse, error) {
-	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
+func (s *DRPCMMDBUnimplementedServer) BackupToS3(*S3BackupRequest, DRPCMMDB_BackupToS3Stream) error {
+	return drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
-func (s *DRPCMMDBUnimplementedServer) RestoreFromS3(context.Context, *RestoreFromS3Request) (*RestoreFromS3Response, error) {
-	return nil, drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
+func (s *DRPCMMDBUnimplementedServer) RestoreFromS3(*RestoreFromS3Request, DRPCMMDB_RestoreFromS3Stream) error {
+	return drpcerr.WithCode(errors.New("Unimplemented"), drpcerr.Unimplemented)
 }
 
 type DRPCMMDBDescription struct{}
 
-func (DRPCMMDBDescription) NumMethods() int { return 10 }
+func (DRPCMMDBDescription) NumMethods() int { return 11 }
 
 func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, interface{}, bool) {
 	switch n {
@@ -296,6 +373,15 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 					)
 			}, DRPCMMDBServer.Insert, true
 	case 3:
+		return "/mmdb.MMDB/Delete", drpcEncoding_File_core_proto{},
+			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
+				return srv.(DRPCMMDBServer).
+					Delete(
+						ctx,
+						in1.(*DeleteRequest),
+					)
+			}, DRPCMMDBServer.Delete, true
+	case 4:
 		return "/mmdb.MMDB/Query", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -304,7 +390,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*QueryRequest),
 					)
 			}, DRPCMMDBServer.Query, true
-	case 4:
+	case 5:
 		return "/mmdb.MMDB/StreamQuery", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return nil, srv.(DRPCMMDBServer).
@@ -313,7 +399,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						&drpcMMDB_StreamQueryStream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.StreamQuery, true
-	case 5:
+	case 6:
 		return "/mmdb.MMDB/GetTable", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -322,7 +408,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*GetTableRequest),
 					)
 			}, DRPCMMDBServer.GetTable, true
-	case 6:
+	case 7:
 		return "/mmdb.MMDB/ListTables", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return srv.(DRPCMMDBServer).
@@ -331,7 +417,7 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						in1.(*Empty),
 					)
 			}, DRPCMMDBServer.ListTables, true
-	case 7:
+	case 8:
 		return "/mmdb.MMDB/Backup", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
 				return nil, srv.(DRPCMMDBServer).
@@ -340,22 +426,22 @@ func (DRPCMMDBDescription) Method(n int) (string, drpc.Encoding, drpc.Receiver, 
 						&drpcMMDB_BackupStream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.Backup, true
-	case 8:
+	case 9:
 		return "/mmdb.MMDB/BackupToS3", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
-				return srv.(DRPCMMDBServer).
+				return nil, srv.(DRPCMMDBServer).
 					BackupToS3(
-						ctx,
 						in1.(*S3BackupRequest),
+						&drpcMMDB_BackupToS3Stream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.BackupToS3, true
-	case 9:
+	case 10:
 		return "/mmdb.MMDB/RestoreFromS3", drpcEncoding_File_core_proto{},
 			func(srv interface{}, ctx context.Context, in1, in2 interface{}) (drpc.Message, error) {
-				return srv.(DRPCMMDBServer).
+				return nil, srv.(DRPCMMDBServer).
 					RestoreFromS3(
-						ctx,
 						in1.(*RestoreFromS3Request),
+						&drpcMMDB_RestoreFromS3Stream{in2.(drpc.Stream)},
 					)
 			}, DRPCMMDBServer.RestoreFromS3, true
 	default:
@@ -409,6 +495,22 @@ type drpcMMDB_InsertStream struct {
 }
 
 func (x *drpcMMDB_InsertStream) SendAndClose(m *InsertResponse) error {
+	if err := x.MsgSend(m, drpcEncoding_File_core_proto{}); err != nil {
+		return err
+	}
+	return x.CloseSend()
+}
+
+type DRPCMMDB_DeleteStream interface {
+	drpc.Stream
+	SendAndClose(*DeleteResponse) error
+}
+
+type drpcMMDB_DeleteStream struct {
+	drpc.Stream
+}
+
+func (x *drpcMMDB_DeleteStream) SendAndClose(m *DeleteResponse) error {
 	if err := x.MsgSend(m, drpcEncoding_File_core_proto{}); err != nil {
 		return err
 	}
@@ -491,32 +593,26 @@ func (x *drpcMMDB_BackupStream) Send(m *BackupChunk) error {
 
 type DRPCMMDB_BackupToS3Stream interface {
 	drpc.Stream
-	SendAndClose(*S3BackupResponse) error
+	Send(*S3BackupChunk) error
 }
 
 type drpcMMDB_BackupToS3Stream struct {
 	drpc.Stream
 }
 
-func (x *drpcMMDB_BackupToS3Stream) SendAndClose(m *S3BackupResponse) error {
-	if err := x.MsgSend(m, drpcEncoding_File_core_proto{}); err != nil {
-		return err
-	}
-	return x.CloseSend()
+func (x *drpcMMDB_BackupToS3Stream) Send(m *S3BackupChunk) error {
+	return x.MsgSend(m, drpcEncoding_File_core_proto{})
 }
 
 type DRPCMMDB_RestoreFromS3Stream interface {
 	drpc.Stream
-	SendAndClose(*RestoreFromS3Response) error
+	Send(*S3RestoreChunk) error
 }
 
 type drpcMMDB_RestoreFromS3Stream struct {
 	drpc.Stream
 }
 
-func (x *drpcMMDB_RestoreFromS3Stream) SendAndClose(m *RestoreFromS3Response) error {
-	if err := x.MsgSend(m, drpcEncoding_File_core_proto{}); err != nil {
-		return err
-	}
-	return x.CloseSend()
+func (x *drpcMMDB_RestoreFromS3Stream) Send(m *S3RestoreChunk) error {
+	return x.MsgSend(m, drpcEncoding_File_core_proto{})
 }
