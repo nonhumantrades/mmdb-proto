@@ -161,9 +161,10 @@ message S3Config {
 }
 
 message BytesProgress {
-  uint64 total_bytes     = 1;
-  uint64 completed_bytes = 2;
-  uint64 duration        = 3;
+  string type            = 1;
+  uint64 total_bytes     = 2;
+  uint64 completed_bytes = 3;
+  uint64 duration        = 4;
 }
 
 message S3BackupRequest {
@@ -189,12 +190,12 @@ message S3BackupFooter {
   string object_key = 1;  
   uint64 version    = 2; 
   uint64 size       = 3;  
+  uint64 duration   = 4;
 }
 
 message S3RestoreFooter {
-    bool success    = 1;
-    uint64 size     = 2;  
-    uint64 duration = 3;
+    uint64 size     = 1;  
+    uint64 duration = 2;
 }
 
 message S3BackupChunk {
@@ -207,9 +208,9 @@ message S3BackupChunk {
 
 message S3RestoreChunk {
     oneof chunk {
-        S3RestoreHeader header   = 1;
-        BytesProgress  progress = 2;
-        S3RestoreFooter footer   = 3;
+        S3RestoreHeader header    = 1;
+        BytesProgress   progress  = 2;
+        S3RestoreFooter footer    = 3;
     }
 }
 

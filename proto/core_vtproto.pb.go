@@ -581,6 +581,7 @@ func (m *BytesProgress) CloneVT() *BytesProgress {
 		return (*BytesProgress)(nil)
 	}
 	r := new(BytesProgress)
+	r.Type = m.Type
 	r.TotalBytes = m.TotalBytes
 	r.CompletedBytes = m.CompletedBytes
 	r.Duration = m.Duration
@@ -678,6 +679,7 @@ func (m *S3BackupFooter) CloneVT() *S3BackupFooter {
 	r.ObjectKey = m.ObjectKey
 	r.Version = m.Version
 	r.Size = m.Size
+	r.Duration = m.Duration
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -694,7 +696,6 @@ func (m *S3RestoreFooter) CloneVT() *S3RestoreFooter {
 		return (*S3RestoreFooter)(nil)
 	}
 	r := new(S3RestoreFooter)
-	r.Success = m.Success
 	r.Size = m.Size
 	r.Duration = m.Duration
 	if len(m.unknownFields) > 0 {
@@ -1572,6 +1573,9 @@ func (this *BytesProgress) EqualVT(that *BytesProgress) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Type != that.Type {
+		return false
+	}
 	if this.TotalBytes != that.TotalBytes {
 		return false
 	}
@@ -1697,6 +1701,9 @@ func (this *S3BackupFooter) EqualVT(that *S3BackupFooter) bool {
 	if this.Size != that.Size {
 		return false
 	}
+	if this.Duration != that.Duration {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1711,9 +1718,6 @@ func (this *S3RestoreFooter) EqualVT(that *S3RestoreFooter) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Success != that.Success {
 		return false
 	}
 	if this.Size != that.Size {
@@ -3950,17 +3954,24 @@ func (m *BytesProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.Duration != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.CompletedBytes != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.CompletedBytes))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x18
 	}
 	if m.TotalBytes != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalBytes))
 		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0x10
+	}
+	if len(m.Type) > 0 {
+		i -= len(m.Type)
+		copy(dAtA[i:], m.Type)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Type)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -4187,6 +4198,11 @@ func (m *S3BackupFooter) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Duration != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Size != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Size))
 		i--
@@ -4240,20 +4256,10 @@ func (m *S3RestoreFooter) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.Duration != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 	}
 	if m.Size != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Size))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Success {
-		i--
-		if m.Success {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
 		i--
 		dAtA[i] = 0x8
 	}
@@ -5938,17 +5944,24 @@ func (m *BytesProgress) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.Duration != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.CompletedBytes != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.CompletedBytes))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x18
 	}
 	if m.TotalBytes != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TotalBytes))
 		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0x10
+	}
+	if len(m.Type) > 0 {
+		i -= len(m.Type)
+		copy(dAtA[i:], m.Type)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Type)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -6175,6 +6188,11 @@ func (m *S3BackupFooter) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Duration != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Size != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Size))
 		i--
@@ -6228,20 +6246,10 @@ func (m *S3RestoreFooter) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error)
 	if m.Duration != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Duration))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 	}
 	if m.Size != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Size))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Success {
-		i--
-		if m.Success {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
 		i--
 		dAtA[i] = 0x8
 	}
@@ -7051,6 +7059,10 @@ func (m *BytesProgress) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.Type)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	if m.TotalBytes != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.TotalBytes))
 	}
@@ -7149,6 +7161,9 @@ func (m *S3BackupFooter) SizeVT() (n int) {
 	if m.Size != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Size))
 	}
+	if m.Duration != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Duration))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -7159,9 +7174,6 @@ func (m *S3RestoreFooter) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Success {
-		n += 2
-	}
 	if m.Size != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Size))
 	}
@@ -10580,6 +10592,38 @@ func (m *BytesProgress) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalBytes", wireType)
 			}
@@ -10598,7 +10642,7 @@ func (m *BytesProgress) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CompletedBytes", wireType)
 			}
@@ -10617,7 +10661,7 @@ func (m *BytesProgress) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
 			}
@@ -11181,6 +11225,25 @@ func (m *S3BackupFooter) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
+			}
+			m.Duration = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Duration |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -11234,26 +11297,6 @@ func (m *S3RestoreFooter) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Success", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Success = bool(v != 0)
-		case 2:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
 			}
 			m.Size = 0
@@ -11271,7 +11314,7 @@ func (m *S3RestoreFooter) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
 			}
@@ -15081,6 +15124,42 @@ func (m *BytesProgress) UnmarshalVTUnsafe(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Type = stringValue
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalBytes", wireType)
 			}
@@ -15099,7 +15178,7 @@ func (m *BytesProgress) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CompletedBytes", wireType)
 			}
@@ -15118,7 +15197,7 @@ func (m *BytesProgress) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
 			}
@@ -15702,6 +15781,25 @@ func (m *S3BackupFooter) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
+			}
+			m.Duration = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Duration |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -15755,26 +15853,6 @@ func (m *S3RestoreFooter) UnmarshalVTUnsafe(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Success", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Success = bool(v != 0)
-		case 2:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Size", wireType)
 			}
 			m.Size = 0
@@ -15792,7 +15870,7 @@ func (m *S3RestoreFooter) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
 			}
