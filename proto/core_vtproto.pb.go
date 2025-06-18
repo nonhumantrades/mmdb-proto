@@ -304,6 +304,7 @@ func (m *StreamQueryBatch) CloneVT() *StreamQueryBatch {
 		return (*StreamQueryBatch)(nil)
 	}
 	r := new(StreamQueryBatch)
+	r.Index = m.Index
 	if rhs := m.Rows; rhs != nil {
 		tmpContainer := make([]*Row, len(rhs))
 		for k, v := range rhs {
@@ -1193,6 +1194,9 @@ func (this *StreamQueryBatch) EqualVT(that *StreamQueryBatch) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Index != that.Index {
 		return false
 	}
 	if len(this.Rows) != len(that.Rows) {
@@ -3396,8 +3400,13 @@ func (m *StreamQueryBatch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if m.Index != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -5464,8 +5473,13 @@ func (m *StreamQueryBatch) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if m.Index != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -7081,6 +7095,9 @@ func (m *StreamQueryBatch) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Index != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Index))
+	}
 	if len(m.Rows) > 0 {
 		for _, e := range m.Rows {
 			l = e.SizeVT()
@@ -9372,6 +9389,25 @@ func (m *StreamQueryBatch) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}
@@ -14071,6 +14107,25 @@ func (m *StreamQueryBatch) UnmarshalVTUnsafe(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rows", wireType)
 			}

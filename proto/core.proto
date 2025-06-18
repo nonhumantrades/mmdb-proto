@@ -89,7 +89,8 @@ message StreamQueryHeader {
 }
 
 message StreamQueryBatch {
-    repeated Row rows = 1;
+    uint32 index      = 1;
+    repeated Row rows = 2;
 }
 
 message StreamQueryFooter {
