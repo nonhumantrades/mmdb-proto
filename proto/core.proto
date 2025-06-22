@@ -177,6 +177,7 @@ message S3BackupRequest {
 message RestoreFromS3Request {
   S3Config s3_config  = 1;
   string   object_key = 2;  
+  bool     temp_file  = 3;
 }
 
 message S3BackupHeader {
